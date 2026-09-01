@@ -184,8 +184,7 @@ independently. They combine:
 - prescription layout
 - medical abbreviations
 - medicine naming conventions
-- strength/dosage patterns
-- quantity
+- dosage/strength patterns
 - frequency
 - nearby clinical information
 
@@ -235,8 +234,8 @@ When reading a medicine:
 2. Identify individual character shapes.
 3. Compare the beginning, middle, and ending of the word.
 4. Consider common medicine-name patterns.
-5. Consider the written strength.
-6. Consider quantity and frequency.
+5. Consider the written dosage/strength.
+6. Consider frequency.
 7. Consider other medicines on the same prescription.
 8. Use the surrounding clinical context.
 9. Select the most plausible interpretation supported by the image.
@@ -360,30 +359,11 @@ frequency = 1-0-1
 does NOT allow you to infer duration.
 
 ============================================================
-QUANTITY
+DOSAGE
 ============================================================
 
-Circled numbers beside medicines are commonly quantities.
-
-If the prescription visibly contains:
-
-(6)
-
-then:
-
-"quantity": "6"
-
-If the number is unclear:
-
-"quantity": "[UNCLEAR]"
-
-Do not calculate quantity.
-
-============================================================
-STRENGTH
-============================================================
-
-Extract strength only when visibly associated with that medicine.
+Extract the medicine dosage/strength only when visibly associated
+with that medicine.
 
 Examples:
 
@@ -392,9 +372,33 @@ Examples:
 500 mg
 0.05
 
-Do not infer strength from the medicine name.
+Store the extracted dosage/strength in the "dosage" field.
 
-Do not infer strength from standard medical knowledge.
+Do not infer dosage from the medicine name.
+
+Do not infer dosage from standard medical knowledge.
+
+============================================================
+INSTRUCTIONS
+============================================================
+
+Extract medicine-specific instructions only when visibly written.
+
+Examples:
+
+After food
+Before food
+With water
+At bedtime
+SOS
+
+Store these instructions in the "instructions" field.
+
+If no medicine-specific instruction is visible:
+
+"instructions": ""
+
+Do not invent instructions from medical knowledge.
 
 ============================================================
 PATIENT INFORMATION
@@ -554,10 +558,10 @@ LEVEL 3:
 Is that word consistent with a medical prescription?
 
 LEVEL 4:
-Does the strength support that interpretation?
+Does the dosage/strength support that interpretation?
 
 LEVEL 5:
-Does the quantity/frequency support that interpretation?
+Does the frequency support that interpretation?
 
 LEVEL 6:
 Does the surrounding prescription context support it?
@@ -628,8 +632,7 @@ Doctors often write:
 - shorthand
 - non-standard spacing
 - repeated frequency patterns
-- circled quantities
-- medicine + strength on the same line
+- medicine + dosage/strength on the same line
 - frequency below the medicine name
 
 Therefore, do NOT judge handwriting using normal English spelling rules.
@@ -653,35 +656,38 @@ No:
 Use EXACTLY this structure:
 
 {
-  "clinic": "",
-  "doctor": "",
-  "date": "",
-  "patient_name": "",
-  "age": "",
-  "sex": "",
-  "vitals": {
-    "bp": "",
-    "hr": "",
-    "spo2": "",
-    "temperature": "",
-    "weight": ""
-  },
-  "complaints": "",
-  "notes": "",
+  "complaints": [],
+  "diagnosis": [],
   "medicines": [
     {
       "name": "",
-      "strength": "",
-      "quantity": "",
+      "dosage": "",
       "frequency": "",
-      "duration": ""
+      "duration": "",
+      "instructions": ""
     }
-  ]
+  ],
+  "tests": [],
+  "advice": "",
+  "followUpDate": null
 }
 
-DO NOT add fields.
+DO NOT add fields outside this structure.
 
-DO NOT remove fields.
+DO NOT return clinic, doctor, date, patient_name, age, sex, vitals,
+or notes.
+
+DO NOT return strength or quantity.
+
+complaints, diagnosis, and tests MUST be arrays of strings.
+
+Medicine objects MUST contain only:
+name, dosage, frequency, duration, instructions.
+
+If a value is not visibly present, return an empty string.
+For followUpDate, return null when it is not visibly present.
+
+DO NOT infer missing dosage, frequency, duration, or instructions.
 
 ============================================================
 FINAL DECISION RULE
