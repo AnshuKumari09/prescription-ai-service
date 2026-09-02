@@ -2,6 +2,7 @@ import os
 import base64
 import json
 import re
+from datetime import datetime
 from typing import Any
 
 from dotenv import load_dotenv
@@ -653,11 +654,16 @@ No:
 - code fences
 - commentary
 
+
 Use EXACTLY this structure:
 
 {
+  "patientId": null,
+  "doctorId": null,
   "complaints": [],
   "diagnosis": [],
+  "appointmentId": null,
+  "sharedWithDoctors": [],
   "medicines": [
     {
       "name": "",
@@ -669,6 +675,7 @@ Use EXACTLY this structure:
   ],
   "tests": [],
   "advice": "",
+  "attachments": [],
   "followUpDate": null
 }
 
@@ -781,3 +788,59 @@ async def extract_text_from_image(
         )
 
     return parse_json_response(raw_text)
+
+
+# ============================================================
+# BUILD FULL PRESCRIPTION DOCUMENT
+# ============================================================
+#
+# OCR_PROMPT ONLY extracts fields that are actually visible on the
+# handwritten prescription: complaints, diagnosis, medicines, tests,
+# advice, followUpDate.
+#
+# patientId, doctorId, appointmentId, sharedWithDoctors and
+# attachments are NOT extractable from handwriting -- they come from
+# your application/session context (who is logged in, which
+# appointment this belongs to, the uploaded file's own URL).
+#
+# This function merges the OCR result with that app-level context so
+# the final dict matches the Mongoose `prescriptionSchema` exactly
+# and can be passed straight into `Prescription.create(...)`.
+# ============================================================
+
+def build_prescription_document(
+    ocr_result: dict[str, Any],
+    patient_id: str,
+    doctor_id: str,
+    appointment_id: str,
+    attachments: list[str] | None = None,
+    shared_with_doctors: list[str] | None = None,
+) -> dict[str, Any]:
+
+    if not patient_id:
+        raise ValueError("patient_id is required.")
+
+    if not doctor_id:
+        raise ValueError("doctor_id is required.")
+
+    if not appointment_id:
+        raise ValueError("appointment_id is required.")
+
+    follow_up_date = ocr_result.get("followUpDate")
+
+    return {
+        "patientId": patient_id,
+        "doctorId": doctor_id,
+        "appointmentId": appointment_id,
+        "sharedWithDoctors": shared_with_doctors or [],
+
+        "complaints": ocr_result.get("complaints", []),
+        "diagnosis": ocr_result.get("diagnosis", []),
+        "medicines": ocr_result.get("medicines", []),
+        "tests": ocr_result.get("tests", []),
+        "advice": ocr_result.get("advice", ""),
+
+        "attachments": attachments or [],
+
+        "followUpDate": follow_up_date if follow_up_date else None,
+    }
