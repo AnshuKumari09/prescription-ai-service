@@ -10,6 +10,14 @@ from app.schemas.prescription import (
 
 from app.services.prescription_ocr import extract_text_from_image
 
+# ============================================================
+# LLM PRESCRIPTION PARSER
+# ============================================================
+
+from app.services.prescription_parser import (
+    parse_prescription as parse_prescription_service
+)
+
 
 router = APIRouter(
     prefix="/api/prescription",
@@ -22,17 +30,12 @@ router = APIRouter(
 # ============================================================
 
 @router.post("/parse", response_model=PrescriptionResponse)
-async def parse_prescription(
+async def parse_prescription_endpoint(
     request: PrescriptionRequest
 ):
-    return PrescriptionResponse(
-        appointmentId=request.appointmentId,
-        complaints=["Fever", "Headache"],
-        diagnosis=["Viral Fever"],
-        medicines=[],
-        tests=["CBC"],
-        advice="Take proper rest and drink plenty of water",
-        followUpDate=None,
+    return await parse_prescription_service(
+        appointment_id=request.appointmentId,
+        prescription_text=request.prescriptionText,
     )
 
 
@@ -120,3 +123,4 @@ async def ocr_prescription(
 
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
+

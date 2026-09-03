@@ -16,10 +16,20 @@ class Medicine(BaseModel):
 
 
 class PrescriptionResponse(BaseModel):
+
     appointmentId: str
+
+    patientId: Optional[str] = None
+    doctorId: Optional[str] = None
+
     complaints: list[str] = []
+
     diagnosis: list[str] = []
+
     medicines: list[Medicine] = []
+
     tests: list[str] = []
+
     advice: Optional[str] = None
+
     followUpDate: Optional[str] = None
